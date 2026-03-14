@@ -1,0 +1,76 @@
+{
+  "name": "android-helper",
+  "displayName": "android-helper",
+  "description": "Lightweight Android development tools for VS Code",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.110.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "android-helper.build",
+        "title": "Build",
+        "category": "Android"
+      },
+      {
+        "command": "android-helper.connectDevice",
+        "title": "Connect Device",
+        "category": "Android"
+      },
+      {
+        "command": "android-helper.disconnectDevice",
+        "title": "Disconnect Device",
+        "category": "Android"
+      },
+      {
+        "command": "android-helper.selectDevice",
+        "title": "Select Device",
+        "category": "Android"
+      },
+      {
+        "command": "android-helper.runApp",
+        "title": "Run App on Device",
+        "category": "Android"
+      },
+      {
+        "command": "android-helper.startLogcat",
+        "title": "Start Logcat",
+        "category": "Android"
+      },
+      {
+        "command": "android-helper.stopLogcat",
+        "title": "Stop Logcat",
+        "category": "Android"
+      },
+      {
+        "command": "android-helper.clearLogcat",
+        "title": "Clear Logcat",
+        "category": "Android"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.110.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "typescript-eslint": "^8.56.1",
+    "eslint": "^9.39.3",
+    "typescript": "^5.9.3",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
