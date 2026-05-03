@@ -13,7 +13,8 @@
 Verify your setup:
 ```bash
 node --version
-adb version
+# for adb, check location like /Users/pbhaskal/Library/Android/sdk/platform-tools/adb
+adb version  
 java -version
 ```
 
