@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta chartset="UTF-8">
+        <title>GPU Compute</title>
+    </head>
+    <body>
+        <h1>GPU Compute</h1>
+        <p>Inspect in dev tools</p>
+    </body>
+    <script>
+        async function runGPUCompute() {
+            if (!navigator.gpu) { return console.error("WebGPU not supported"); }
+            const adapter = await navigator.gpu.requestAdapter();
+            const device = await adapter.requestDevice();
+            console.log("success, connected to your device: ", device);
+            
+            // 1. Write the Master Recipe (The Compute Shader / Kernel)
+            const shaderCode = `
+                @group(0) @binding(0) var<storage, read> arrayA : array<f32>;
+                @group(0) @binding(1) var<storage, read> arrayB : array<f32>;
+                @group(0) @binding(2) var<storage, read_write> arrayOut : array<f32>;
+
+                @compute @workgroup_size(4)
+                fn main(@builtin(global_invocation_id) id : vec3<u32>) {
+                    // Each thread adds one pair of numbers at the exact same time
+                    arrayOut[id.x] = arrayA[id.x] + arrayB[id.x];
+                }
+            `;
+
+            // 2. Prepare our data on the CPU (Host)
+            const dataA = new Float32Array([1, 2, 3, 4]);
+            const dataB = new Float32Array([10, 20, 30, 40]);
+
+            // 3. Create "Warehouses" (Buffers) on the GPU (Device) and copy our data over
+            const gpuBufferA = device.createBuffer({ mappedAtCreation: true, size: dataA.byteLength, usage: GPUBufferUsage.STORAGE });
+            new Float32Array(gpuBufferA.getMappedRange()).set(dataA);
+            gpuBufferA.unmap();
+
+            const gpuBufferB = device.createBuffer({ mappedAtCreation: true, size: dataB.byteLength, usage: GPUBufferUsage.STORAGE });
+            new Float32Array(gpuBufferB.getMappedRange()).set(dataB);
+            gpuBufferB.unmap();
+
+            // Create a buffer for the output results
+            const gpuBufferOut = device.createBuffer({ size: dataA.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
+
+            // 4. Bind the data to our shader
+            const shaderModule = device.createShaderModule({ code: shaderCode });
+            const pipeline = device.createComputePipeline({ layout: 'auto', compute: { module: shaderModule, entryPoint: 'main' } });
+            const bindGroup = device.createBindGroup({
+                layout: pipeline.getBindGroupLayout(0),
+                entries: [
+                    { binding: 0, resource: { buffer: gpuBufferA } },
+                    { binding: 1, resource: { buffer: gpuBufferB } },
+                    { binding: 2, resource: { buffer: gpuBufferOut } }
+                ]
+            });
+
+            // 5. Tell the GPU to execute!
+            const commandEncoder = device.createCommandEncoder();
+            const passEncoder = commandEncoder.beginComputePass();
+            passEncoder.setPipeline(pipeline);
+            passEncoder.setBindGroup(0, bindGroup);
+            passEncoder.dispatchWorkgroups(1); // Launch 1 block/workgroup
+            passEncoder.end();
+
+            // 6. Read the results back from the GPU to the CPU
+            const gpuReadBuffer = device.createBuffer({ size: dataA.byteLength, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+            commandEncoder.copyBufferToBuffer(gpuBufferOut, 0, gpuReadBuffer, 0, dataA.byteLength);
+            device.queue.submit([commandEncoder.finish()]);
+
+            // Read the data and print to console
+            await gpuReadBuffer.mapAsync(GPUMapMode.READ);
+            const result = new Float32Array(gpuReadBuffer.getMappedRange());
+            // Print directly onto the screen for mobile viewing!
+            document.body.innerHTML += `<h2>🔥 Output from your Phone's GPU: [ ${Array.from(result).join(', ')} ]</h2>`;
+        }
+
+        runGPUCompute();
+    </script>
+</html>

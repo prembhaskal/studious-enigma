@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta chartset="UTF-8">
+    <title>M3 GPU sandbox</title>
+</head>
+<body>
+    <h1>My first GPU program</h1>
+    <p>Inspect in dev tools</p>
+    <script>
+        async function initGPU() {
+            // 1. Check if WebGPU is supported by browser
+            if (!navigator.gpu) {
+                console.error("web GPU is not supported on this browser, try chrome/safari");
+                return;
+            }
+            // 2 . Request access to your M3 graphics card (the adapter)
+            const adapter = await navigator.gpu.requestAdapter();
+
+            // 3. Open a connection channel to GPU device.
+            const device = await adapter.requestDevice();
+
+            console.log("success, connected to your device: ", device);
+        }
+
+        // Run our initializer
+        initGPU();
+    </script>
+</body>
+</html>
