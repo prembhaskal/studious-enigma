@@ -4,6 +4,7 @@ import logging
 import os
 import time
 import uuid
+import warnings
 
 import gradio as gr
 
@@ -81,11 +82,28 @@ def build_ui() -> gr.Blocks:
     return demo
 
 
-def main() -> None:
+def _configure_logging() -> None:
+    """Clean, INFO-level logs for our app; silence noisy third-party chatter."""
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        format="%(asctime)s  %(message)s",
+        datefmt="%H:%M:%S",
     )
+    # Third-party libraries dump model-config blocks and flash-attn notices at
+    # WARNING — keep only their real errors.
+    for noisy in ("parler_tts", "transformers"):
+        logging.getLogger(noisy).setLevel(logging.ERROR)
+    try:
+        from transformers.utils import logging as hf_logging
+        hf_logging.set_verbosity_error()
+    except Exception:
+        pass
+    # Gradio/Starlette version-deprecation notice — not actionable here.
+    warnings.filterwarnings("ignore", message=".*HTTP_422_UNPROCESSABLE_ENTITY.*")
+
+
+def main() -> None:
+    _configure_logging()
     build_ui().launch()
 
 
