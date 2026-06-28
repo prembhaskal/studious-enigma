@@ -39,6 +39,13 @@ _PRESETS: list[Preset] = [
         model="kokoro",
         voice=VoiceConfig(voice_id="hf_alpha"),
     ),
+    # Kokoro has no Indian-accented English voice; af_heart is a US-English
+    # female voice that pronounces English correctly (accent is American).
+    Preset(
+        label="Young Indian Female – English (Kokoro, US accent)",
+        model="kokoro",
+        voice=VoiceConfig(voice_id="af_heart"),
+    ),
 ]
 
 
