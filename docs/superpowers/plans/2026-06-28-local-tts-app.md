@@ -6,12 +6,12 @@
 
 **Architecture:** A registry of pluggable TTS backends behind one common interface (`TTSBackend` + `VoiceConfig`), with a thin Gradio UI on top. Backends are lazy-loaded and cached. Synthesis returns raw audio `(sample_rate, ndarray)`; a separate `output.py` stage writes WAV (future seam for audio→video). Two backends at launch: Indic Parler-TTS (prompt-controlled voice) and Kokoro-82M (voice-ID controlled).
 
-**Tech Stack:** Python 3.13, venv + pip, Gradio, PyTorch (MPS), `parler-tts` + `transformers`, `kokoro` + `espeak-ng`, `soundfile`/`numpy`, `pytest`.
+**Tech Stack:** Python 3.12 (Kokoro pins `numpy==1.26.4`, which has no 3.13 wheel), venv + pip, Gradio, PyTorch (MPS), `parler-tts` + `transformers`, `kokoro` + `espeak-ng`, `soundfile`/`numpy`, `pytest`. Parler's deps require system `git-lfs`.
 
 ## Global Constraints
 
 - Target OS: macOS Apple Silicon. Prefer device `mps`, fall back to `cpu`. Never assume CUDA.
-- Project lives in `ml/tts/`. Its own venv at `ml/tts/.venv` — isolated from `ml/fastai/.venv`.
+- Project lives in `ml/tts/`. Its own venv at `ml/tts/.venv` — isolated from `ml/fastai/.venv`. Build the venv with **Python 3.12** (`python3.12`): Kokoro pins `numpy==1.26.4` which has no Python 3.13 wheel. System `git-lfs` must be installed (`brew install git-lfs && git lfs install`) for Parler's deps.
 - Personal repo (`prembhaskal/studious-enigma`): no JIRA id in branches or commits.
 - All work on branch `tts-text-to-speech-app` (already created).
 - Default `pytest` run must NOT download models or require a GPU. Tests touching real models are marked `@pytest.mark.models` and excluded by default.
@@ -39,10 +39,12 @@
 
 ```bash
 cd ml/tts 2>/dev/null || mkdir -p ml/tts && cd ml/tts
-python3 -m venv .venv
+python3.12 -m venv .venv      # 3.12 — Kokoro's numpy==1.26.4 has no 3.13 wheel
 source .venv/bin/activate
 pip install --upgrade pip
 mkdir -p tts tests
+# system dep for Parler:
+brew install git-lfs && git lfs install
 ```
 
 - [ ] **Step 2: Write `ml/tts/requirements.txt`**

@@ -49,6 +49,11 @@ A registry of pluggable TTS backends behind one common interface, with a thin Gr
 UI on top. Adding a new model later means adding one backend file plus a registry
 entry — no UI or interface changes.
 
+> **Implementation note (post-build):** The shipped UI has a single **preset dropdown**;
+> the model is derived from the chosen preset (each preset pins its backend) rather than
+> a separate model dropdown. This is simpler UX and is what the implementation plan and
+> `app.py` reflect.
+
 ```
 ml/tts/
   app.py              # Gradio UI: text box, model dropdown, preset dropdown, advanced override, play/download
