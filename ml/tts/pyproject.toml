@@ -1,0 +1,6 @@
+[tool.pytest.ini_options]
+markers = [
+    "models: tests that download/run real TTS models (deselected by default)",
+]
+addopts = "-m 'not models'"
+testpaths = ["tests"]

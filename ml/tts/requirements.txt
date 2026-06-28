@@ -1,0 +1,17 @@
+# UI
+gradio
+
+# Core ML / audio
+torch
+transformers
+soundfile
+numpy
+
+# Indic Parler-TTS (installed from git — not on PyPI)
+parler-tts @ git+https://github.com/huggingface/parler-tts.git
+
+# Kokoro-82M (requires system espeak-ng for Hindi: `brew install espeak-ng`)
+kokoro
+
+# Tests
+pytest
