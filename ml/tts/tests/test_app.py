@@ -1,4 +1,5 @@
-import numpy as np
+import os
+
 import pytest
 
 import app
@@ -31,12 +32,27 @@ def test_resolve_voice_override_replaces_description_for_parler():
     assert voice.description == "a calm narrator"
 
 
-def test_generate_returns_audio_and_path(tmp_path, fake_kokoro_preset, monkeypatch):
+def test_generate_writes_unique_file_and_echoes_name(tmp_path, fake_kokoro_preset, monkeypatch):
     monkeypatch.setattr(app, "OUTPUT_DIR", str(tmp_path))
-    (sr, audio), path = app.generate("hello", fake_kokoro_preset.label, None)
-    assert sr == 16000
-    assert isinstance(audio, np.ndarray)
-    assert path.endswith(".wav")
+    audio_path, file_path, status = app.generate("hello", fake_kokoro_preset.label, None)
+
+    # audio player and download both point at the saved file
+    assert audio_path == file_path
+    assert file_path.endswith(".wav")
+    assert os.path.exists(file_path)
+
+    # unique, timestamped name (not the old fixed out.wav), echoed in the status
+    filename = os.path.basename(file_path)
+    assert filename.startswith("tts-kokoro-")
+    assert filename != "out.wav"
+    assert filename in status
+
+
+def test_generate_filenames_do_not_collide(tmp_path, fake_kokoro_preset, monkeypatch):
+    monkeypatch.setattr(app, "OUTPUT_DIR", str(tmp_path))
+    _a1, p1, _s1 = app.generate("one", fake_kokoro_preset.label, None)
+    _a2, p2, _s2 = app.generate("two", fake_kokoro_preset.label, None)
+    assert p1 != p2  # each generation gets its own file (no clobbering)
 
 
 def test_generate_empty_text_raises():

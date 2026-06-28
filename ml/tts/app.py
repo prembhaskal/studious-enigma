@@ -1,6 +1,9 @@
 """Gradio web UI for the local text-to-speech app."""
 import dataclasses
+import logging
 import os
+import time
+import uuid
 
 import gradio as gr
 
@@ -10,6 +13,8 @@ from tts.base import VoiceConfig
 # Importing the backends registers them with the registry.
 import tts.kokoro_backend  # noqa: F401
 import tts.parler_backend  # noqa: F401
+
+logger = logging.getLogger(__name__)
 
 OUTPUT_DIR = "outputs"
 
@@ -31,15 +36,27 @@ def generate(text: str, preset_label: str, advanced_override: str | None):
         raise gr.Error("Please enter some text to synthesize.")
 
     model_name, voice = resolve_voice(preset_label, advanced_override)
+    logger.info("generate: model=%s preset=%r chars=%d", model_name, preset_label, len(text))
     try:
-        backend = registry.get(model_name)
+        backend = registry.get(model_name)  # first call loads/downloads the model
+        start = time.perf_counter()
         sr, audio = backend.synthesize(text, voice)
+        elapsed = time.perf_counter() - start
     except Exception as exc:  # surface load/synthesis failures in the UI
+        logger.exception("synthesis failed for model %s", model_name)
         raise gr.Error(f"Synthesis failed for model '{model_name}': {exc}")
 
+    duration = len(audio) / sr if sr else 0.0
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    path = output.save_wav(sr, audio, os.path.join(OUTPUT_DIR, "out.wav"))
-    return (sr, audio), path
+    filename = f"tts-{model_name}-{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:4]}.wav"
+    path = output.save_wav(sr, audio, os.path.join(OUTPUT_DIR, filename))
+    logger.info(
+        "generate done: %.2fs audio (sr=%d, %d samples) synthesized in %.1fs -> %s",
+        duration, sr, len(audio), elapsed, path,
+    )
+    status = f"{filename}  ({duration:.1f}s, {sr} Hz, model={model_name})"
+    # audio player + download both get the saved file; status echoes the name
+    return path, path, status
 
 
 def build_ui() -> gr.Blocks:
@@ -53,13 +70,22 @@ def build_ui() -> gr.Blocks:
             placeholder="Parler: voice description · Kokoro: voice id (e.g. hf_alpha)",
         )
         btn = gr.Button("Generate", variant="primary")
-        audio_out = gr.Audio(label="Output", type="numpy")
+        status_out = gr.Textbox(label="Generated file", interactive=False)
+        audio_out = gr.Audio(label="Play", type="filepath")
         file_out = gr.File(label="Download WAV")
-        btn.click(generate, inputs=[text, preset, advanced], outputs=[audio_out, file_out])
+        btn.click(
+            generate,
+            inputs=[text, preset, advanced],
+            outputs=[audio_out, file_out, status_out],
+        )
     return demo
 
 
 def main() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
     build_ui().launch()
 
 
